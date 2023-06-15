@@ -1,0 +1,86 @@
+---
+title: "R Project Regression"
+subtitle: "4375 Machine Learning with Dr. Mazidi"
+author: "Maxwell Lim"
+date: "3/21/2022"
+output: pdf_document
+---
+
+# Data Import
+
+```{r}
+library(e1071)
+library(rpart)
+df1 <- read.delim("household_power_consumption.txt", sep=";", header=TRUE)
+```
+
+# Data Cleanup
+
+https://archive.ics.uci.edu/ml/datasets/Individual+household+electric+power+consumption
+
+I converted all the numbers to numeric data types and the date to a date format. I also randomly sampled and reduced the data set size to 50k observations so that it would run in a reasonable amount of time.
+```{r}
+
+df1$Date <- as.Date(df1$Date, "%d/%m/%Y")
+df1$Global_active_power <- as.numeric(df1$Global_active_power)
+df1$Global_reactive_power <- as.numeric(df1$Global_reactive_power)
+df1$Global_intensity <- as.numeric(df1$Global_intensity)
+df1$Voltage <- as.numeric(df1$Voltage)
+df1$Sub_metering_1 <- as.numeric(df1$Sub_metering_1)
+df1$Sub_metering_2 <- as.numeric(df1$Sub_metering_2)
+set.seed(1234)
+i <- sample(1:nrow(df1), nrow(df1)*0.025, replace=FALSE)
+reduced_set <- df1[i,]
+reduced_set <- reduced_set[complete.cases(reduced_set),]
+```
+
+
+# Data Exploration
+```{r}
+head(df1)
+range(reduced_set$Global_active_power)
+median(reduced_set$Global_active_power)
+mean(reduced_set$Global_active_power)
+summary(reduced_set$Voltage)
+range(reduced_set$Sub_metering_1)
+range(reduced_set$Sub_metering_2)
+par(mfrow =c(2,2))
+plot(reduced_set$Voltage, reduced_set$Global_active_power)
+plot(reduced_set$Sub_metering_1, reduced_set$Global_active_power)
+plot(reduced_set$Sub_metering_2, reduced_set$Global_active_power)
+plot(df1$Global_intensity, df1$Global_active_power)
+```
+
+# Machine learning
+
+I chose voltage, global intensity and sub metering 1 because they looked to be the factors which were closly related to the global active power. I am also using mean squared error to evaluate how the regression models performed.
+```{r}
+i <- sample(1:nrow(reduced_set), nrow(reduced_set)*0.75, replace=FALSE)
+power_train <- reduced_set[i,]
+power_test <- reduced_set[-i,]
+
+lm1 <- lm(Global_active_power~Global_intensity+Voltage+Sub_metering_1, data = power_train)
+tree <- rpart(Global_active_power~Global_intensity+Voltage+Sub_metering_1, data = power_train)
+svm1 <- svm(Global_active_power~Global_intensity+Voltage+Sub_metering_1, data = power_train, kernel="linear", cost=10, scale=TRUE)
+```
+
+# Results
+
+```{r}
+lm_mse <- mean(lm1$residuals^2)
+print(paste("Linear model mse = ", lm_mse))
+svm_mse <- mean(svm1$residuals^2)
+print(paste("SVM model mse = ", svm_mse))
+p <- predict(tree, power_test)
+tree_mse <- mean((power_test$Global_active_powerp)^2)
+print(paste("Decision tree mse = ", tree_mse))
+```
+# Conclusion
+
+1)Linear Model
+
+2)SVM
+
+3)Decision tree
+
+The linear model performed the best on this data set with svm in second and the decision tree in third. Although svm performed second best it also was the slowest taking noticeable longer than the other two algorithms by many seconds. The reason that linear regression worked the best was that global active power and global intensity were strongly correlated and linear regression is a simple algorithm. This script was able to learn the global power usage of a household. I do not think this will be usefull as the data was only measuring power from one single household.

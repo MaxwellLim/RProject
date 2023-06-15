@@ -1,0 +1,88 @@
+---
+title: "R Project Classification"
+subtitle: "4375 Machine Learning with Dr. Mazidi"
+author: "Maxwell Lim"
+date: "3/21/2022"
+output: pdf_document
+---
+
+# Data import
+
+```{r}
+library(e1071)
+library(tree)
+df <- read.csv("adult.data",header= FALSE, stringsAsFactors = TRUE, na.string = "?")
+colnames(df)<-c("Age", "Workclass", "Fnlwgt", "Education", "Education-num", "Marital-status", "Occupation", "Relationship", "Race", "Sex", "Capital-gain", "Capital-loss", "Hours-per-week", "Native-country", "Income")
+```
+
+# Data Cleanup
+
+https://archive.ics.uci.edu/ml/datasets/Adult
+
+I converted all the character collumns into factors so that they would be usable with the classification tasks.
+```{r}
+df$Workclass <- factor(df$Workclass)
+df$Education <- factor(df$Education)
+df$`Marital-status`<- factor(df$`Marital-status`)
+df$Occupation <- factor(df$Occupation)
+df$Relationship <- factor(df$Relationship)
+df$Sex <- factor(df$Sex)
+df$Race <- factor(df$Race)
+df$`Native-country` <- factor(df$`Native-country`)
+df$Income <- factor(df$Income)
+```
+
+
+# Data Exploration
+```{r}
+head(df)
+mean(df$Age)
+summary(df$Education)
+range(df$`Hours-per-week`)
+mean(df$`Hours-per-week`)
+summary(df$Income)
+par(mfrow =c(2,2))
+plot(df$Sex,df$Income, xlab = "Sex", ylab = "Income")
+plot(df$Education, df$Income, xlab = "Education", ylab = "Income")
+plot(df$Income, df$Age, xlab = "Income", ylab = "Age")
+```
+
+# Machine learning
+
+I selected the features of age sex and education because they had a clear correlation with the income factor. The metric which I will be using to rank the algorithms is accuracy.
+```{r}
+set.seed(1234)
+i <- sample(1:nrow(df), nrow(df)*0.75, replace=FALSE)
+adult_train <- df[i,]
+adult_test <- df[-i,]
+
+glm1 = glm(Income~Age+Sex+Education, data = adult_train, family = binomial)
+nb1 <- naiveBayes(Income~Age+Sex+Education,data = adult_train)
+adult_tree <- tree(Income~Age+Sex+Education, data=adult_train)
+
+```
+
+# Results
+
+```{r}
+glm_prob <- predict(glm1, newdata = adult_test, type = "response")
+glm_pred <-ifelse(glm_prob>.5," >50K"," <=50K")
+glm_acc <- mean(glm_pred == adult_test$Income)
+print(paste("Logistic regression accuracy =", glm_acc))
+nb_raw <- predict(nb1, newdata=adult_test, type="class")
+nb_acc <- mean(nb_raw==adult_test$Income)
+print(paste("Naive bayes accuracy =", nb_acc))
+tree_pred <- predict(adult_tree, adult_test, type = 'class')
+tree_acc <- mean(tree_pred==adult_test$Income)
+print(paste("Decision tree accuracy = ", tree_acc))
+```
+
+# Conclusion
+
+1)Decision Tree
+
+2)Naive Bayes
+
+3Logistic Regression
+
+The decision tree performed the best on this data set with the naive bayes also performing close to the same. These algorithms also ran in very similar times. The machine was able to learn how to classify which adults made over or under 50k. I think that this could be useful as it is from census information from the us government.
